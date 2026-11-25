@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 
 import * as z from "../../index.js";
-import { INVALID, ZodCompileUnsupportedError, compile, compileFn } from "../compile.js";
+import { INVALID, ZodCompileAsyncError, ZodCompileUnsupportedError, compile, compileFn } from "../compile.js";
 
 // Differential harness: assert compiled schema agrees with the original on every fixture. Success path: data identical (incl. key order and undefined-vs-absent, which toEqual cannot see) AND the fast path actually produced the value (a fixture set that silently falls back on valid inputs tests nothing). Failure path: issues deep-equal (errors always come from the runtime fallback).
 function describe(value: unknown): string {
@@ -827,6 +827,7 @@ test("a thenable predicate throws rather than rejecting", () => {
     ["x", 1, null]
   );
   differential(z.string().refine((() => Promise.resolve(true)) as never), ["x", 1]);
+  differential(z.stringFormat("custom", (() => Promise.resolve(false)) as never), ["x", 1]);
   differential(z.string().superRefine(((_v: any, _c: any) => Promise.resolve(true)) as never), ["x", 1]);
 
   // A transform is the other way round: the interpreter's own union also falls through to the next branch, so INVALID there is parity rather than a bail-out.
@@ -839,6 +840,12 @@ test("a thenable predicate throws rather than rejecting", () => {
       { strict: true }
     )
   ).toThrow();
+  expect(() =>
+    compile(
+      z.stringFormat("custom", async () => false),
+      { strict: true }
+    )
+  ).toThrow(ZodCompileAsyncError);
   differential(
     z.custom((v) => typeof v === "string"),
     ["x", 1, null, undefined]

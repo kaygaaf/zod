@@ -43,7 +43,8 @@ const CEILINGS: Record<string, number> = {
   // Also carries the lazy `safeParse` error: a getter and a setter on the failing result, and the async wrapper that keeps a sync throw a rejection. Measured 3021 / 3497 / 4581 locally plus 18 headroom.
   // Also carries the symbol-key loop in `util.members`, which is what installs `$ZodProperties`'s `Symbol.iterator` on its prototype, and the memoizer's shared reference predicate. Measured 3036 / 3516 / 4611 locally plus 18 headroom.
   // Lowered by the measured −17 / −16 / −16 from making z.properties() a check again: the symbol-key loop in `util.members` and the memoizer's callable arm left with the schema role. Measured 3044 / 3418 / 4629 locally plus 18 headroom; the object ceiling had been overtaken to zero headroom on main, so its number moves up by two while the bundle moves down.
-  "zod-mini-boolean": 3062,
+  // Also carries the stringFormat promise check. `$ZodCustomStringFormat` lives in core/schemas.ts, so a boolean bundle pays for `instanceof Promise` even though it never calls stringFormat. Measured 3074 locally plus 28 headroom.
+  "zod-mini-boolean": 3102,
   // Also carries the code-point string length scan: `.min`/`.max`/`.length` on a string pulls in the surrogate walk.
   // Also carries the Standard Schema issue bag: a failing `~standard.validate` parses with a plain issue holder instead of constructing a ZodError. Measured 2974 / 3455 / 4540 locally plus 28 headroom.
   // Also carries the lazy `safeParse` error: a getter and a setter on the failing result, and the async wrapper that keeps a sync throw a rejection. Measured 3021 / 3497 / 4581 locally plus 18 headroom.

@@ -1276,15 +1276,20 @@ export const $ZodCustomStringFormat: core.$constructor<$ZodCustomStringFormat> =
   (inst, def): void => {
     $ZodStringFormat.init(inst, def);
     inst._zod.check = (payload) => {
-      if (def.fn(payload.value)) return;
-
-      payload.issues.push({
-        code: "invalid_format",
-        format: def.format,
-        input: payload.value,
-        inst,
-        continue: !def.abort,
-      });
+      const apply = (ok: unknown) => {
+        if (ok) return;
+        payload.issues.push({
+          code: "invalid_format",
+          format: def.format,
+          input: payload.value,
+          inst,
+          continue: !def.abort,
+        });
+      };
+      const result = def.fn(payload.value);
+      if (result instanceof Promise) return result.then(apply);
+      apply(result);
+      return;
     };
   }
 );

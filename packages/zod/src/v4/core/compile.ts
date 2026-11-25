@@ -878,9 +878,20 @@ function generateStringFormatCheck(
   // A custom string format carries the predicate the runtime actually calls. Hoist and call it instead of testing `def.pattern`: the two only coincide when the format was built from a RegExp, and relying on that coupling is how supplemental validation gets dropped.
   const customFn = (def as unknown as { fn?: (input: string) => unknown }).fn;
   if (customFn) {
-    if (isAsyncFunction(customFn)) throw new ZodCompileUnsupportedError(`async string format ${fmt}`);
+    if (isAsyncFunction(customFn)) {
+      throw new ZodCompileAsyncError("z.compile: async string format predicates are not supported");
+    }
     const fnConst = addConstant(ctx, customFn);
-    doc.write(`if (!${fnConst}(${accessor})) return INVALID;`);
+    // regex-built formats never return a promise; a custom predicate can, and a promise is truthy
+    if (def.pattern) {
+      doc.write(`if (!${fnConst}(${accessor})) return INVALID;`);
+      return accessor;
+    }
+    const throwAsyncConst = addConstant(ctx, throwAsync);
+    const resVar = newVar(ctx);
+    doc.write(`const ${resVar} = ${fnConst}(${accessor});`);
+    doc.write(`if (${resVar} instanceof Promise) ${throwAsyncConst}();`);
+    doc.write(`if (!${resVar}) return INVALID;`);
     return accessor;
   }
 

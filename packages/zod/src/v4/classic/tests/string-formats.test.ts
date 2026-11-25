@@ -123,3 +123,20 @@ test("z.hex", () => {
   expect(hexSchema.safeParse("hello world").success).toBe(false);
   expect(hexSchema.safeParse("123-abc").success).toBe(false);
 });
+
+test("stringFormat awaits an async predicate", async () => {
+  const fail = z.stringFormat("custom", async () => false);
+  const bad = await fail.safeParseAsync("bad");
+  expect(bad.success).toBe(false);
+  if (!bad.success) expect(bad.error.issues[0]?.code).toBe("invalid_format");
+
+  const pass = z.stringFormat("custom", async () => true);
+  await expect(pass.parseAsync("good")).resolves.toBe("good");
+
+  expect(() => fail.safeParse("bad")).toThrow(z.core.$ZodAsyncError);
+  expect(() => z.stringFormat("custom", () => Promise.resolve(false)).safeParse("bad")).toThrow(z.core.$ZodAsyncError);
+
+  const sync = z.stringFormat("custom", (value) => value === "ok");
+  expect(sync.parse("ok")).toBe("ok");
+  expect(sync.safeParse("no").success).toBe(false);
+});

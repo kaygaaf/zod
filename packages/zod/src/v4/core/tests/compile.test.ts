@@ -1273,6 +1273,18 @@ test("ZodCompileAsyncError thrown on async refinement", () => {
   expect(() => compile(schema, { strict: true })).toThrow(ZodCompileAsyncError);
 });
 
+test("ZodCompileAsyncError thrown on async string format", () => {
+  const schema = z.stringFormat("custom", async () => false);
+  expect(() => compile(schema, { strict: true })).toThrow(ZodCompileAsyncError);
+  expect(compile(schema)).toBe(schema);
+});
+
+test("compiled string format throws when the predicate returns a promise", () => {
+  const schema = z.stringFormat("custom", () => Promise.resolve(false));
+  expect(() => schema.parse("bad")).toThrow($ZodAsyncError);
+  expect(() => compile(schema).parse("bad")).toThrow($ZodAsyncError);
+});
+
 test("ZodCompileAsyncError thrown on async transform", () => {
   const schema = z.string().transform(async (s) => s.length);
   expect(() => compile(schema, { strict: true })).toThrow(ZodCompileAsyncError);
